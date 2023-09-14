@@ -14,23 +14,27 @@ def combine_csvs(project_dir, output_file):
     csv_files = [file for file in os.listdir(dataDir) if file.endswith(".csv")]
     output_path = os.path.join(dataDir, output_file)
 
-    # Open the output file for writing
-    with open(output_path, mode='w', newline='') as combined_csv:
-        writer = csv.writer(combined_csv)
+    if os.path.exists(output_path):
+        print(f"Output file already exists! File will be overwritten.")
 
-        # Write the header from the first CSV
-        with open(os.path.join(dataDir, csv_files[0]), 'r') as first_csv:
-            reader = csv.reader(first_csv)
-            header = next(reader)
-            writer.writerow(header)
+    else:
+        # Open the output file for writing
+        with open(output_path, mode='w', newline='') as combined_csv:
+            writer = csv.writer(combined_csv)
 
-        # Iterate through all CSV files and append their rows to the combined CSV
-        for csv_file in csv_files:
-            with open(os.path.join(dataDir, csv_file), 'r') as input_csv:
-                reader = csv.reader(input_csv)
-                next(reader)  # Skip the header
-                for row in reader:
-                    writer.writerow(row)
+            # Write the header from the first CSV
+            with open(os.path.join(dataDir, csv_files[0]), 'r') as first_csv:
+                reader = csv.reader(first_csv)
+                header = next(reader)
+                writer.writerow(header)
+
+            # Iterate through all CSV files and append their rows to the combined CSV
+            for csv_file in csv_files:
+                with open(os.path.join(dataDir, csv_file), 'r') as input_csv:
+                    reader = csv.reader(input_csv)
+                    next(reader)  # Skip the header
+                    for row in reader:
+                        writer.writerow(row)
 
     return output_path, print("Finished combining CSVs!")
 
@@ -113,7 +117,7 @@ def create_config(project_name, project_dir):
     }
 
     data = {'Project': project_info,
-            'glm_paramaters': glm_params,
+            'glm_params': glm_params,
             'train_test_split': train_test_split,}
 
     cfg_file = os.path.join(project_dir, "config.yaml")

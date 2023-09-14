@@ -115,9 +115,9 @@ def shift_predictors(config, df_source):
     Shift predictors by the amounts specified in config.yaml
     """
 
-    predictors = config['glm_paramaters']['predictors']
-    shift_bounds = config['glm_paramaters']['predictors_shift_bounds'] if 'predictors_shift_bounds' in config['glm_paramaters'] else {}
-    shift_bounds_default = config['glm_paramaters']['predictors_shift_bounds_default']
+    predictors = config['glm_params']['predictors']
+    shift_bounds = config['glm_params']['predictors_shift_bounds'] if 'predictors_shift_bounds' in config['glm_params'] else {}
+    shift_bounds_default = config['glm_params']['predictors_shift_bounds_default']
     list_predictors_and_shifts = [(predictor, shift_bounds.get(
         predictor, shift_bounds_default)) for predictor in predictors]
 
@@ -133,7 +133,7 @@ def shift_predictors(config, df_source):
     
 
     df_shifted = pd.concat(list_predictors_shifted, axis=1)
-    srs_response = df_source[config['glm_paramaters']['response']]
+    srs_response = df_source[config['glm_params']['response']]
     non_nans = (df_shifted.isna().sum(axis=1) == 0)&~np.isnan(srs_response)
     df_predictors_fit = df_shifted[non_nans].copy()
     srs_response_fit = srs_response[non_nans].copy()
@@ -148,13 +148,13 @@ def fit_glm(config, X_train, X_test, y_train, y_test):
         Will pass in values from config file
         """
         
-        alpha=config['glm_paramaters']['glm_keyword_args']['alpha']
-        fit_intercept=config['glm_paramaters']['glm_keyword_args']['fit_intercept']
-        max_iter=config['glm_paramaters']['glm_keyword_args']['max_iter']
-        warm_start=config['glm_paramaters']['glm_keyword_args']['warm_start']
-        l1_ratio=config['glm_paramaters']['glm_keyword_args']['l1_ratio']      
-        selection = config['glm_paramaters']['glm_keyword_args']['selection'] 
-        score_metric = config['glm_paramaters']['glm_keyword_args']['score_metric']
+        alpha=config['glm_params']['glm_keyword_args']['alpha']
+        fit_intercept=config['glm_params']['glm_keyword_args']['fit_intercept']
+        max_iter=config['glm_params']['glm_keyword_args']['max_iter']
+        warm_start=config['glm_params']['glm_keyword_args']['warm_start']
+        l1_ratio=config['glm_params']['glm_keyword_args']['l1_ratio']      
+        selection = config['glm_params']['glm_keyword_args']['selection'] 
+        score_metric = config['glm_params']['glm_keyword_args']['score_metric']
         
     
         model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=fit_intercept, 
@@ -185,14 +185,14 @@ def fit_tuned_glm(config, X_train, X_test, y_train, y_test):
             provide a list of alphas and l1_ratios to test.
             """
             
-            alpha=config['glm_paramaters']['glm_keyword_args']['alpha']
-            n_alphas = config['glm_paramaters']['glm_keyword_args']['n_alphas']
-            cv = config['glm_paramaters']['glm_keyword_args']['cv']
-            fit_intercept=config['glm_paramaters']['glm_keyword_args']['fit_intercept']
-            max_iter=config['glm_paramaters']['glm_keyword_args']['max_iter']
-            l1_ratio=config['glm_paramaters']['glm_keyword_args']['l1_ratio'] 
-            n_jobs=config['glm_paramaters']['glm_keyword_args']['n_jobs']      
-            score_metric = config['glm_paramaters']['glm_keyword_args']['score_metric']
+            alpha=config['glm_params']['glm_keyword_args']['alpha']
+            n_alphas = config['glm_params']['glm_keyword_args']['n_alphas']
+            cv = config['glm_params']['glm_keyword_args']['cv']
+            fit_intercept=config['glm_params']['glm_keyword_args']['fit_intercept']
+            max_iter=config['glm_params']['glm_keyword_args']['max_iter']
+            l1_ratio=config['glm_params']['glm_keyword_args']['l1_ratio'] 
+            n_jobs=config['glm_params']['glm_keyword_args']['n_jobs']      
+            score_metric = config['glm_params']['glm_keyword_args']['score_metric']
             
             tuned_model = ElasticNetCV(alphas=alpha, l1_ratio=l1_ratio, fit_intercept=fit_intercept, 
                                 max_iter=max_iter, copy_X=True, cv=cv, n_alphas=n_alphas, 
@@ -326,7 +326,7 @@ def plot_and_save(config, y_pred, y_test, beta, df_predictors_shift):
     #save model fit results
     model_fit_results = pd.Series(beta, index=df_predictors_shift.columns, name='coef').unstack(0, )
     model_fit_results.index = model_fit_results.index.astype(int)
-    model_fit_results = model_fit_results.reindex(config['glm_paramaters']['predictors'], axis=1)
+    model_fit_results = model_fit_results.reindex(config['glm_params']['predictors'], axis=1)
 
     tup_y_lim = (np.inf, -np.inf)
     fig, axes = plt.subplots(1, len(model_fit_results.columns), figsize=(5*len(model_fit_results.columns), 5))
