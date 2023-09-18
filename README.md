@@ -10,6 +10,7 @@ All necessary packages listed in requirements.txt and are pip installable!
 To get started, please take a look at the fitGLM jupyter notebook. When you have 
 completed running the notebook the output will generate a project directory.
 
+```bash
 Project directory will be created to include: 
 |
 | Project_Name
@@ -24,6 +25,7 @@ Project directory will be created to include:
 |   ├── predictes_vs_actual.png
 |   └── residuals.png
 | config.yaml
+```
 
 data folder: will include all of your data in .csv format. Please refer to the notebook for formatting.
 
