@@ -22,7 +22,7 @@ Project directory will be created to include:
 |   └── project_name.pkl
 | ├── results
 |   ├── model_fit.png
-|   ├── predictes_vs_actual.png
+|   ├── predicted_vs_actual.png
 |   └── residuals.png
 | config.yaml
 ```
