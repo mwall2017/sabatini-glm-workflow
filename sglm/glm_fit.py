@@ -10,7 +10,7 @@ import pickle
 from typing import Tuple, Optional 
 
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import ElasticNet, ElasticNetCV
+from sklearn.linear_model import ElasticNet, ElasticNetCV, Ridge, RidgeCV
 
 
 
@@ -142,7 +142,7 @@ def shift_predictors(config, df_source):
 
 
 
-def fit_glm(config, X_train, X_test, y_train, y_test):
+def fit_EN(config, X_train, X_test, y_train, y_test):
         """
         Fit a GLM model using ElasticNet from scikit-learn
         Will pass in values from config file
@@ -178,7 +178,7 @@ def fit_glm(config, X_train, X_test, y_train, y_test):
     
         return model, y_pred, score, beta, intercept, sparse_beta
 
-def fit_tuned_glm(config, X_train, X_test, y_train, y_test):
+def fit_tuned_EN(config, X_train, X_test, y_train, y_test):
             """
             Fit a GLM model using ElasticNetCV from scikit-learn
             Will pass in values from config file. You will need to
@@ -204,6 +204,75 @@ def fit_tuned_glm(config, X_train, X_test, y_train, y_test):
             best_l1r = tuned_model.l1_ratio_
             best_params = dict(alpha=best_alpha, l1_ratio=best_l1r)
 
+            beta = tuned_model.coef_
+
+            y_pred = tuned_model.predict(X_test)
+    
+            if score_metric == 'r2':
+                score = calc_r2(y_pred, y_test)
+            elif score_metric == 'mse':
+                score = calc_mse(y_pred, y_test)
+            elif score_metric == 'avg':
+                score = tuned_model.score(y_pred, y_test)
+        
+            return tuned_model, y_pred, score, beta, best_params
+
+def fit_ridge(config, X_train, X_test, y_train, y_test):
+        """
+        Fit a Ridge model using Ridge from scikit-learn
+        Will pass in values from config file
+        """
+        
+        alpha=config['glm_params']['ridge_keyword_args']['alpha']
+        fit_intercept=config['glm_params']['ridge_keyword_args']['fit_intercept']
+        max_iter=config['glm_params']['ridge_keyword_args']['max_iter']
+        solver=config['glm_params']['ridge_keyword_args']['solver']      
+        score_metric = config['glm_params']['ridge_keyword_args']['score_metric']
+        
+    
+        model = Ridge(alpha=alpha, fit_intercept=fit_intercept, 
+                            max_iter=max_iter, copy_X=True,
+                            solver=solver)
+        
+        model.fit(X_train, y_train)
+        beta = model.coef_
+        intercept = model.intercept_
+
+        y_pred = model.predict(X_test)
+
+
+        if score_metric == 'r2':
+            score = calc_r2(y_pred, y_test)
+        elif score_metric == 'mse':
+            score = calc_mse(y_pred, y_test)
+        elif score_metric == 'avg':
+            score = model.score(y_pred, y_test)
+    
+        return model, y_pred, score, beta, intercept
+
+def fit_tuned_ridge(config, X_train, X_test, y_train, y_test):
+            """
+            Fit a Ridge model using RidgeCV from scikit-learn
+            Will pass in values from config file. You will need to
+            provide a list of alphas to test.
+            """
+            
+            alpha=config['glm_params']['ridge_keyword_args']['alpha']
+            cv = config['glm_params']['ridge_keyword_args']['cv']
+            fit_intercept=config['glm_params']['ridge_keyword_args']['fit_intercept']
+            gcv_mode=config['glm_params']['ridge_keyword_args']['gcv_mode']   
+            score_metric = config['glm_params']['ridge_keyword_args']['score_metric']
+            
+            tuned_model = RidgeCV(alphas=alpha, fit_intercept=fit_intercept, 
+                                cv=cv, scoring=score_metric, store_cv_values=False,
+                                gcv_mode=gcv_mode, alpha_per_target=False)
+            
+            tuned_model.fit(X_train, y_train)
+
+            best_alpha = tuned_model.alpha_
+            best_score = tuned_model.best_score_
+            best_params = dict(alpha=best_alpha,
+                               best_score=best_score)
             beta = tuned_model.coef_
 
             y_pred = tuned_model.predict(X_test)

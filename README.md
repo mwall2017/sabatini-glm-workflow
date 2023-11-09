@@ -3,7 +3,7 @@ sglm
 
 A GLM Pipeline for Neuroscience Analyses
 
-Built using sklearn.ElasticNet and ElasticNetCV
+Built using sklearn.ElasticNet,Ridge, ElasticNetCV, and RidgeCV
 
 All necessary packages listed in requirements.txt and are pip installable! 
 

@@ -109,7 +109,17 @@ def create_config(project_name, project_dir):
             'cv': 5, #number of cross validation folds
             'n_alphas': 100, #number of alphas to test
             'n_jobs': -1, #number of jobs to run in parallel
-            }, 
+            },
+        'ridge_keyword_args': {
+            'alpha': 0.5,
+            'fit_intercept': True,
+            'max_iter': 1000,            
+            'solver': 'auto', #options: 'auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga'
+            'gcv_mode': 'auto', #options: None, 'auto', 'svd', 'eigen'
+            'score_metric': 'r2', #options: 'r2', 'mse', 'avg'
+            'cv': 5, #number of cross validation folds
+            'n_jobs': -1, #number of jobs to run in parallel
+            },
     }
     train_test_split = {
         'train_size': 0.8,
