@@ -10,7 +10,7 @@ import pickle
 from typing import Tuple, Optional 
 
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import ElasticNet, ElasticNetCV, Ridge, RidgeCV
+from sklearn.linear_model import ElasticNet, ElasticNetCV, Ridge, RidgeCV, LinearRegression
 
 
 
@@ -23,7 +23,6 @@ def save_model(model_dict, config):
     model_full_path = os.path.join(model_path, model_name)
     with open(model_full_path, 'wb') as f:
         pickle.dump(model_dict, f)
-
 
 
 def split_data(X, y, config):
@@ -110,7 +109,7 @@ def shift_array(setup_array: np.ndarray, shift_amt: int, fill_value: Optional[fl
 
     return shifted_array
 
-def shift_predictors(config, df_source):
+def shift_predictors(config, df_source, sparsify: Optional[bool] = False):
     """
     Shift predictors by the amounts specified in config.yaml
     """
@@ -137,9 +136,41 @@ def shift_predictors(config, df_source):
     non_nans = (df_shifted.isna().sum(axis=1) == 0)&~np.isnan(srs_response)
     df_predictors_fit = df_shifted[non_nans].copy()
     srs_response_fit = srs_response[non_nans].copy()
+    if sparsify == True:
+        import scipy
+        df_predictors_fit_sparse = scipy.sparse.csr_array(df_predictors_fit)
+        return srs_response_fit, df_predictors_fit_sparse, list_predictors_and_shifts
+    else:
+        return srs_response_fit, df_predictors_fit, list_predictors_and_shifts
 
-    return srs_response_fit, df_predictors_fit, list_predictors_and_shifts
+def fit_glm(config, X_train, X_test, y_train, y_test, cross_validation: Optional[bool] = False):
+    """
+    Fit a GLM model using ElasticNet or Ridge from scikit-learn
+    Will pass in values from config file
+    """
 
+    #fetch regression type
+    regression_type = config['glm_params']['regression_type'].lower()
+    if regression_type == 'elasticnet':
+        print('Fitting ElasticNet model...')
+        if cross_validation == False:
+            model, y_pred, score, beta, intercept, sparse_beta = fit_EN(config, X_train, X_test, y_train, y_test)
+            return model, y_pred, score, beta, intercept, sparse_beta
+        else:
+            model, y_pred, score, beta, best_params = fit_tuned_EN(config, X_train, X_test, y_train, y_test)
+            return model, y_pred, score, beta, best_params
+    elif regression_type == 'ridge':
+        print('Fitting Ridge model...')
+        if cross_validation == False:
+            model, y_pred, score, beta, intercept = fit_ridge(config, X_train, X_test, y_train, y_test)
+            return model, y_pred, score, beta, intercept
+        else:
+            model, y_pred, score, beta, best_params = fit_tuned_ridge(config, X_train, X_test, y_train, y_test)
+            return model, y_pred, score, beta, best_params
+    elif regression_type == 'linearregression':
+        print('Fitting Linear Regression model...')
+        model, y_pred, score, beta, intercept = fit_linear_regression(config, X_train, X_test, y_train, y_test)
+        return model, y_pred, score, beta, intercept
 
 
 def fit_EN(config, X_train, X_test, y_train, y_test):
@@ -147,21 +178,22 @@ def fit_EN(config, X_train, X_test, y_train, y_test):
         Fit a GLM model using ElasticNet from scikit-learn
         Will pass in values from config file
         """
-        
-        alpha=config['glm_params']['glm_keyword_args']['alpha']
-        fit_intercept=config['glm_params']['glm_keyword_args']['fit_intercept']
-        max_iter=config['glm_params']['glm_keyword_args']['max_iter']
-        warm_start=config['glm_params']['glm_keyword_args']['warm_start']
-        l1_ratio=config['glm_params']['glm_keyword_args']['l1_ratio']      
-        selection = config['glm_params']['glm_keyword_args']['selection'] 
-        score_metric = config['glm_params']['glm_keyword_args']['score_metric']
+        #fetch parameters
+        params_EN = config['glm_params']['glm_keyword_args']['elasticnet']
+        alpha=params_EN['alpha']
+        fit_intercept=params_EN['fit_intercept']
+        max_iter=params_EN['max_iter']
+        warm_start=params_EN['warm_start']
+        l1_ratio=params_EN['l1_ratio']      
+        selection = params_EN['selection'] 
+        score_metric = params_EN['score_metric']
         
     
         model = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, fit_intercept=fit_intercept, 
                             max_iter=max_iter, copy_X=True, warm_start=warm_start,
                             selection=selection)
         
-        model.fit(X_train, y_train)
+        model.fit(X_train, y_train, feature_names=config['glm_params']['predictors'])
         beta = model.coef_
         sparse_beta = model.sparse_coef_
         intercept = model.intercept_
@@ -184,15 +216,16 @@ def fit_tuned_EN(config, X_train, X_test, y_train, y_test):
             Will pass in values from config file. You will need to
             provide a list of alphas and l1_ratios to test.
             """
-            
-            alpha=config['glm_params']['glm_keyword_args']['alpha']
-            n_alphas = config['glm_params']['glm_keyword_args']['n_alphas']
-            cv = config['glm_params']['glm_keyword_args']['cv']
-            fit_intercept=config['glm_params']['glm_keyword_args']['fit_intercept']
-            max_iter=config['glm_params']['glm_keyword_args']['max_iter']
-            l1_ratio=config['glm_params']['glm_keyword_args']['l1_ratio'] 
-            n_jobs=config['glm_params']['glm_keyword_args']['n_jobs']      
-            score_metric = config['glm_params']['glm_keyword_args']['score_metric']
+            #fetch parameters
+            params_EN = config['glm_params']['glm_keyword_args']['elasticnet']
+            alpha= params_EN['alpha']
+            n_alphas =  params_EN['n_alphas']
+            cv =  params_EN['cv']
+            fit_intercept= params_EN['fit_intercept']
+            max_iter= params_EN['max_iter']
+            l1_ratio= params_EN['l1_ratio'] 
+            n_jobs= params_EN['n_jobs']      
+            score_metric =  params_EN['score_metric']
             
             tuned_model = ElasticNetCV(alphas=alpha, l1_ratio=l1_ratio, fit_intercept=fit_intercept, 
                                 max_iter=max_iter, copy_X=True, cv=cv, n_alphas=n_alphas, 
@@ -222,12 +255,13 @@ def fit_ridge(config, X_train, X_test, y_train, y_test):
         Fit a Ridge model using Ridge from scikit-learn
         Will pass in values from config file
         """
-        
-        alpha=config['glm_params']['ridge_keyword_args']['alpha']
-        fit_intercept=config['glm_params']['ridge_keyword_args']['fit_intercept']
-        max_iter=config['glm_params']['ridge_keyword_args']['max_iter']
-        solver=config['glm_params']['ridge_keyword_args']['solver']      
-        score_metric = config['glm_params']['ridge_keyword_args']['score_metric']
+        #fetch params
+        params_ridge = config['glm_params']['glm_keyword_args']['ridge']
+        alpha=params_ridge['alpha']
+        fit_intercept=params_ridge['fit_intercept']
+        max_iter=params_ridge['max_iter']
+        solver=params_ridge['solver']      
+        score_metric = params_ridge['score_metric']
         
     
         model = Ridge(alpha=alpha, fit_intercept=fit_intercept, 
@@ -256,12 +290,13 @@ def fit_tuned_ridge(config, X_train, X_test, y_train, y_test):
             Will pass in values from config file. You will need to
             provide a list of alphas to test.
             """
-            
-            alpha=config['glm_params']['ridge_keyword_args']['alpha']
-            cv = config['glm_params']['ridge_keyword_args']['cv']
-            fit_intercept=config['glm_params']['ridge_keyword_args']['fit_intercept']
-            gcv_mode=config['glm_params']['ridge_keyword_args']['gcv_mode']   
-            score_metric = config['glm_params']['ridge_keyword_args']['score_metric']
+            #fetch params
+            params_ridge = config['glm_params']['glm_keyword_args']['ridge']
+            alpha=params_ridge['alpha']
+            cv = params_ridge['cv']
+            fit_intercept=params_ridge['fit_intercept']
+            gcv_mode=params_ridge['gcv_mode']   
+            score_metric = params_ridge['score_metric']
             
             tuned_model = RidgeCV(alphas=alpha, fit_intercept=fit_intercept, 
                                 cv=cv, scoring=score_metric, store_cv_values=False,
@@ -286,6 +321,33 @@ def fit_tuned_ridge(config, X_train, X_test, y_train, y_test):
         
             return tuned_model, y_pred, score, beta, best_params
 
+def fit_linear_regression(config, X_train, X_test, y_train, y_test):
+     """
+     Fit a linear regression model using LinearRegression from scikit-learn
+     Will pass in values from config file
+     """
+     #fetch params
+     params_linear = config['glm_params']['glm_keyword_args']['linearregression']
+     fit_intercept=params_linear['fit_intercept']
+     copy_X=params_linear['copy_X']
+     n_jobs=params_linear['n_jobs']
+     score_metric = params_linear['score_metric']
+     
+     model = LinearRegression(fit_intercept=fit_intercept, copy_X=copy_X, n_jobs=n_jobs)
+     model.fit(X_train, y_train)
+     beta = model.coef_
+     intercept = model.intercept_
+
+     y_pred = model.predict(X_test)
+
+     if score_metric == 'r2':
+         score = calc_r2(y_pred, y_test)
+     elif score_metric == 'mse':
+         score = calc_mse(y_pred, y_test)
+     elif score_metric == 'avg':
+         score = model.score(y_pred, y_test)
+
+     return model, y_pred, score, beta, intercept
 
 
 
@@ -362,6 +424,31 @@ def calc_mse(y_pred, y):
 
     return mse
 
+def leave_one_out_cross_val(config, X_train, X_test, y_train, y_test):
+    """
+    Will run selected model by leaving one predictor out at a time.
+    Will return the model with the best score
+    """
+    predictors = config['glm_params']['predictors']
+    best_score = 0
+    best_model = None
+    model_list = []
+
+    for predictor in predictors:
+        predictors_temp = predictors.copy()
+        predictors_temp.remove(predictor)
+        X_train_temp = X_train[predictors_temp]
+        X_test_temp = X_test[predictors_temp]
+        model, y_pred, score, beta, intercept = fit_glm(config, X_train_temp, X_test_temp, y_train, y_test)
+        print(f'Predictor left out: {predictor}, Score: {score}, adding to model list...')
+        model_list.append({'predictors': predictors_temp,
+                            'model': model, 'score': score, 
+                            'beta': beta, 'intercept': intercept, 
+                            'predictor_left_out': predictor})
+
+    return model_list
+
+
 def plot_and_save(config, y_pred, y_test, beta, df_predictors_shift):
     """
     Plot and save the predictions vs actual values and the model fit results
@@ -414,4 +501,3 @@ def plot_and_save(config, y_pred, y_test, beta, df_predictors_shift):
     plt.savefig(config['Project']['project_path'] + '/results/model_fit.png')
     plt.close()
 
-    

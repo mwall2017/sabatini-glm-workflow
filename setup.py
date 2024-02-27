@@ -7,6 +7,6 @@ setup(
     description='A GLM Pipeline built using ElasticNet from scikit-learn',
     author='Janet Berrios Wallace',
     author_email='janet_wallace@hms.harvard.edu',
-    install_requires=['numpy', 'pandas', 'matplotlib', 'scikit-learn', 'scipy', 'yaml', 'seaborn'],
+    install_requires=['numpy', 'pandas', 'matplotlib', 'scikit-learn', 'scipy', 'PyYAML', 'seaborn'],
     license='',
 )
