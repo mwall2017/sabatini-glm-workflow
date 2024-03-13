@@ -155,21 +155,26 @@ def fit_glm(config, X_train, X_test, y_train, y_test, cross_validation: Optional
         print('Fitting ElasticNet model...')
         if cross_validation == False:
             model, y_pred, score, beta, intercept = fit_EN(config, X_train, X_test, y_train, y_test)
+            print('Model fit complete')
             return model, y_pred, score, beta, intercept
         else:
             model, y_pred, score, beta, best_params = fit_tuned_EN(config, X_train, X_test, y_train, y_test)
+            print('Model fit complete')
             return model, y_pred, score, beta, best_params
     elif regression_type == 'ridge':
         print('Fitting Ridge model...')
         if cross_validation == False:
             model, y_pred, score, beta, intercept = fit_ridge(config, X_train, X_test, y_train, y_test)
+            print('Model fit complete')
             return model, y_pred, score, beta, intercept
         else:
             model, y_pred, score, beta, best_params = fit_tuned_ridge(config, X_train, X_test, y_train, y_test)
+            print('Model fit complete')
             return model, y_pred, score, beta, best_params
     elif regression_type == 'linearregression':
         print('Fitting Linear Regression model...')
         model, y_pred, score, beta, intercept = fit_linear_regression(config, X_train, X_test, y_train, y_test)
+        print('Model fit complete')
         return model, y_pred, score, beta, intercept
 
 
