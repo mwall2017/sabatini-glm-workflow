@@ -207,8 +207,8 @@ def align_dataStream (config, data, shifted_params):
     for key, indices in response_indices.items():
         response_indices_shifted[key] = []
         for index in indices:
-            start = index[2] + shifted_params[0][1][0]
-            stop = index[2] + shifted_params[0][1][1]
+            start = int(index[2] + shifted_params[0][1][0])
+            stop = int(index[2] + shifted_params[0][1][1])
             response_indices_shifted[key].append((start, stop))
 
     response = config['glm_params']['response']
@@ -235,8 +235,8 @@ def align_reconstructed_dataStream (config, data, data_shifted, shifted_params, 
     for key, indices in response_indices.items():
         response_indices_shifted[key] = []
         for index in indices:
-            start = index[2] + shifted_params[0][1][0]
-            stop = index[2] + shifted_params[0][1][1]
+            start = int(index[2] + shifted_params[0][1][0])
+            stop = int(index[2] + shifted_params[0][1][1])
             response_indices_shifted[key].append((start, stop))
 
     recon = model.predict(data_shifted)

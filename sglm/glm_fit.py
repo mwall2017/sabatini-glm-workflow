@@ -154,8 +154,8 @@ def fit_glm(config, X_train, X_test, y_train, y_test, cross_validation: Optional
     if regression_type == 'elasticnet':
         print('Fitting ElasticNet model...')
         if cross_validation == False:
-            model, y_pred, score, beta, intercept, sparse_beta = fit_EN(config, X_train, X_test, y_train, y_test)
-            return model, y_pred, score, beta, intercept, sparse_beta
+            model, y_pred, score, beta, intercept = fit_EN(config, X_train, X_test, y_train, y_test)
+            return model, y_pred, score, beta, intercept
         else:
             model, y_pred, score, beta, best_params = fit_tuned_EN(config, X_train, X_test, y_train, y_test)
             return model, y_pred, score, beta, best_params
@@ -193,7 +193,7 @@ def fit_EN(config, X_train, X_test, y_train, y_test):
                             max_iter=max_iter, copy_X=True, warm_start=warm_start,
                             selection=selection)
         
-        model.fit(X_train, y_train, feature_names=config['glm_params']['predictors'])
+        model.fit(X_train, y_train)
         beta = model.coef_
         sparse_beta = model.sparse_coef_
         intercept = model.intercept_
@@ -208,7 +208,7 @@ def fit_EN(config, X_train, X_test, y_train, y_test):
         elif score_metric == 'avg':
             score = model.score(y_pred, y_test)
     
-        return model, y_pred, score, beta, intercept, sparse_beta
+        return model, y_pred, score, beta, intercept
 
 def fit_tuned_EN(config, X_train, X_test, y_train, y_test):
             """
