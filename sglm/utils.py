@@ -163,7 +163,7 @@ def plot_all_events(data, features, n):
     for feature in features:
         plot_events(data, feature, n)
 
-def plot_betas(config, beta, df_predictors_shift, shifted_params):
+def plot_betas(config, beta, df_predictors_shift, shifted_params, save=False, save_path=None):
     #locate start and stop indices for each predictor
     predictor_indices = {}
     for key in config['glm_params']['predictors']:
@@ -194,61 +194,93 @@ def plot_betas(config, beta, df_predictors_shift, shifted_params):
         for idx in zero_index:
             ax.axvline(x=idx, color='black', linestyle='--')
 
+        if save:
+            plt.savefig(os.path.join(save_path, f'{key}_betas.png'))
+        else:
+            pass
         plt.show()
-
+        
 def align_dataStream (config, data, shifted_params): 
-    #find all indices where predictor == 1 in dataframe and append to dictionary
-    response_indices = {}
-    for key in config['glm_params']['predictors']:
-        response_indices[key] = data[data[key]==1].index
-
-    # for each response_indices, find start and stop indices and append to list
-    response_indices_shifted = {}
-    for key, indices in response_indices.items():
-        response_indices_shifted[key] = []
-        for index in indices:
-            start = int(index[2] + shifted_params[0][1][0])
-            stop = int(index[2] + shifted_params[0][1][1])
-            response_indices_shifted[key].append((start, stop))
-
+    import tqdm
     response = config['glm_params']['response']
-    signal = data.loc[:, data.columns.str.contains(response)].reset_index()
-    signal = signal[response]
+    signal = data.loc[:, response]
+    shifted_params = dict(shifted_params)
 
-    # for each response_indices_shifted, append the photometry data to a list
-    dataStream = {}
-    for key, indices in response_indices_shifted.items():
-        dataStream[key] = []
-        for index in indices:
-            dataStream[key].append(signal[index[0]:index[1]])
+    response_indices = {}
+    shifted_params = dict(shifted_params)
+    for key in config['glm_params']['predictors']:
+        response_indices[key] = data[data[key]==1].index    
 
-    return dataStream
+    response_indices_shifted = {}
+    for key in response_indices.keys():
+        response_indices_shifted[key] = []
+        for index in response_indices[key]:
+            session_name, trial, timestamp = index  
+            center = int(timestamp)  # Center index
+            start = center + int(shifted_params[key][0])  # Adjusted start index
+            stop = center + int(shifted_params[key][1])  # Adjusted stop index
+            # Preserve multi-index information with shifted indices
+            response_indices_shifted[key].append((session_name, trial, start, stop))
+
+    extracted_signal = {}
+    signal_sorted = signal.sort_index()
+    extracted_signal = {}
+    # Iterate through each key-value pair in response_indices_shifted
+    for key, indices_list in response_indices_shifted.items():
+        extracted_signal[key] = []
+        for index_info in tqdm.tqdm(indices_list):
+            session_name, trial_number, start, stop = index_info
+            selected_data = signal_sorted.loc[(session_name, trial_number, slice(start, stop))]
+            selected_data_filtered = selected_data[(selected_data.index.get_level_values('Timestamp') >= start) & 
+                                                (selected_data.index.get_level_values('Timestamp') <= stop)]
+            
+            # Group the data by the 'Timestamp' level
+            selected_data_filtered = selected_data_filtered.groupby(level='Timestamp').first()
+            extracted_signal[key].append(selected_data_filtered)
+
+    return extracted_signal
 
 def align_reconstructed_dataStream (config, data, data_shifted, shifted_params, model):
+    import tqdm
+    shifted_params = dict(shifted_params)
     #find all indices where predictor == 1 in dataframe and append to dictionary
     response_indices = {}
     for key in config['glm_params']['predictors']:
         response_indices[key] = data[data[key]==1].index
 
-    # for each response_indices, find start and stop indices and append to list
     response_indices_shifted = {}
-    for key, indices in response_indices.items():
+    for key in response_indices.keys():
         response_indices_shifted[key] = []
-        for index in indices:
-            start = int(index[2] + shifted_params[0][1][0])
-            stop = int(index[2] + shifted_params[0][1][1])
-            response_indices_shifted[key].append((start, stop))
+        for index in response_indices[key]:
+            session_name, trial, timestamp = index  
+            center = int(timestamp)  # Center index
+            start = center + int(shifted_params[key][0])  # Adjusted start index
+            stop = center + int(shifted_params[key][1])  # Adjusted stop index
+            # Preserve multi-index information with shifted indices
+            response_indices_shifted[key].append((session_name, trial, start, stop))
 
     recon = model.predict(data_shifted)
+    #add to data_shifted dataframe
+    data_shifted['recon'] = recon
+    signal = data_shifted['recon']
+    signal_sorted = signal.sort_index()
 
-    # for each response_indices_shifted, append the photometry data to a list
-    recon_dataStream = {}
-    for key, indices in response_indices_shifted.items():
-        recon_dataStream[key] = []
-        for index in indices:
-            recon_dataStream[key].append(recon[index[0]:index[1]])
+    extracted_signal = {}
+    # Iterate through each key-value pair in response_indices_shifted
+    for key, indices_list in response_indices_shifted.items():
+        extracted_signal[key] = []
+        for index_info in tqdm.tqdm(indices_list):
+            session_name, trial_number, start, stop = index_info
+            selected_data = signal_sorted.loc[(session_name, trial_number, slice(start, stop))]
+            selected_data_filtered = selected_data[(selected_data.index.get_level_values('Timestamp') >= start) & 
+                                                (selected_data.index.get_level_values('Timestamp') <= stop)]
+            
+            # Group the data by the 'Timestamp' level
+            selected_data_filtered = selected_data_filtered.groupby(level='Timestamp').first()
+            extracted_signal[key].append(selected_data_filtered)
 
-    return recon_dataStream
+    return extracted_signal
+
 
 def plot_aligned_dataStream(dataStream, config):
     import matplotlib.pyplot as plt
@@ -271,10 +303,10 @@ def plot_aligned_dataStream(dataStream, config):
 
         #Plot the averaged waveform with SEM
         plt.figure()  # Create a new figure for each predictor
-        plt.plot(averaged_waveform, label='Mean ' + predictor + ' response')
+        plt.plot(averaged_waveform, label='Mean response')
         plt.fill_between(range(len(averaged_waveform)), averaged_waveform - sem, averaged_waveform + sem, alpha=0.3)
 
-        plt.title('Actual response with SEM - ' + predictor)
+        plt.title('Response with SEM - ' + predictor)
         plt.xlabel('Timestamps')
         plt.ylabel('Z-score')
         plt.legend()
@@ -284,6 +316,7 @@ def plot_actual_v_reconstructed(config, dataStream, recon_dataStream):
     import matplotlib.pyplot as plt
     import numpy as np
 
+    response = config['glm_params']['response']
     for predictor in config['glm_params']['predictors']:
         max_length = max(len(waveform) for waveform in dataStream[predictor])
 
@@ -309,9 +342,9 @@ def plot_actual_v_reconstructed(config, dataStream, recon_dataStream):
 
         #Plot the averaged waveform with SEM
         plt.figure()
-        plt.plot(averaged_waveform, label='Mean ' + predictor + ' response')
+        plt.plot(averaged_waveform, label='Actual')
         plt.fill_between(range(len(averaged_waveform)), averaged_waveform - sem, averaged_waveform + sem, alpha=0.3)
-        plt.plot(averaged_recon_waveform, label='Mean ' + predictor + ' recon response')
+        plt.plot(averaged_recon_waveform, label='Recon')
         plt.fill_between(range(len(averaged_recon_waveform)), averaged_recon_waveform - sem_recon, averaged_recon_waveform + sem_recon, alpha=0.3)
 
         plt.title('Actual vs Reconstructed response with SEM - ' + predictor)
