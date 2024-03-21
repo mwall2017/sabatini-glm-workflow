@@ -282,7 +282,7 @@ def align_reconstructed_dataStream (config, data, data_shifted, shifted_params, 
     return extracted_signal
 
 
-def plot_aligned_dataStream(dataStream, config):
+def plot_aligned_dataStream(dataStream, config, save=False, save_path=None):
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -310,13 +310,21 @@ def plot_aligned_dataStream(dataStream, config):
         plt.xlabel('Timestamps')
         plt.ylabel('Z-score')
         plt.legend()
+        
+        # Save if save is True
+        if save:
+            if save_path is not None:
+                plt.savefig(save_path + f'/{predictor}_aligned.png')
+            else:
+                raise ValueError("If save is True, save_path must be provided.")
+        else:
+            pass
         plt.show()
 
-def plot_actual_v_reconstructed(config, dataStream, recon_dataStream):
+def plot_actual_v_reconstructed(config, dataStream, recon_dataStream, save=False, save_path=None):
     import matplotlib.pyplot as plt
     import numpy as np
 
-    response = config['glm_params']['response']
     for predictor in config['glm_params']['predictors']:
         max_length = max(len(waveform) for waveform in dataStream[predictor])
 
@@ -351,5 +359,14 @@ def plot_actual_v_reconstructed(config, dataStream, recon_dataStream):
         plt.xlabel('Timestamps')
         plt.ylabel('Z-score')
         plt.legend()
+
+        # Save if save is True
+        if save:
+            if save_path is not None:
+                plt.savefig(save_path + f'/{predictor}_actualVrecon.png')
+            else:
+                raise ValueError("If save is True, save_path must be provided.")
+        else:
+            pass
         plt.show()
 
