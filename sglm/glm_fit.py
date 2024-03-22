@@ -482,7 +482,7 @@ def leave_one_out_cross_val(config, X_train, X_test, y_train, y_test):
     fig, ax = plt.subplots(figsize=(10, 6))  # Adjusted figsize for better visualization
     colors = sns.color_palette('colorblind')
     ax.bar(predictors, scores, color=colors[0])  # Using predictors and scores for bar plot
-    ax.set_xlabel('Model')
+    ax.set_xlabel('Predictor Left Out')
     ax.set_ylabel('Score')
     ax.set_title('Leave One Out Cross Validation')
     ax.grid(True)
