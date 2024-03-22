@@ -189,13 +189,13 @@ def plot_betas(config, beta, df_predictors_shift, shifted_params, save=False, sa
         ax.set_title(key)
         ax.set_xlabel('Timestamps')
         ax.set_ylabel('Beta Coefficients')
-
+        plt.ylim(-1,1.25)
         # Add vertical line at zero_index
         for idx in zero_index:
             ax.axvline(x=idx, color='black', linestyle='--')
 
         if save:
-            plt.savefig(os.path.join(save_path, f'{key}_betas.png'))
+            plt.savefig(os.path.join(save_path, f'{key}_betas.eps'))
         else:
             pass
         plt.show()
@@ -282,7 +282,7 @@ def align_reconstructed_dataStream (config, data, data_shifted, shifted_params, 
     return extracted_signal
 
 
-def plot_aligned_dataStream(dataStream, config):
+def plot_aligned_dataStream(dataStream, config, save=False, save_path=None):
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -310,9 +310,14 @@ def plot_aligned_dataStream(dataStream, config):
         plt.xlabel('Timestamps')
         plt.ylabel('Z-score')
         plt.legend()
+        plt.ylim(-1,1.5)
+        if save:
+            plt.savefig(os.path.join(save_path, f'{predictor}_actual.eps'))
+        else:
+            pass
         plt.show()
 
-def plot_actual_v_reconstructed(config, dataStream, recon_dataStream):
+def plot_actual_v_reconstructed(config, dataStream, recon_dataStream,save=False, save_path=None):
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -342,14 +347,20 @@ def plot_actual_v_reconstructed(config, dataStream, recon_dataStream):
 
         #Plot the averaged waveform with SEM
         plt.figure()
-        plt.plot(averaged_waveform, label='Actual')
+        plt.plot(averaged_waveform, linewidth=1, label='Actual')
         plt.fill_between(range(len(averaged_waveform)), averaged_waveform - sem, averaged_waveform + sem, alpha=0.3)
-        plt.plot(averaged_recon_waveform, label='Recon')
+        plt.plot(averaged_recon_waveform, linewidth=1, label='Recon')
         plt.fill_between(range(len(averaged_recon_waveform)), averaged_recon_waveform - sem_recon, averaged_recon_waveform + sem_recon, alpha=0.3)
 
         plt.title('Actual vs Reconstructed response with SEM - ' + predictor)
         plt.xlabel('Timestamps')
         plt.ylabel('Z-score')
         plt.legend()
+        plt.ylim(-1,1.5)
+        if save:
+            plt.savefig(os.path.join(save_path, f'{predictor}_both.eps'))
+        else:
+            pass
+        
         plt.show()
 
