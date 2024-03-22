@@ -282,7 +282,7 @@ def align_reconstructed_dataStream (config, data, data_shifted, shifted_params, 
     return extracted_signal
 
 
-def plot_aligned_dataStream(dataStream, config, save=False, save_path=None):
+def plot_aligned_dataStream(dataStream, config, save=False, save_path=None, reconstructed=False):
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -314,7 +314,10 @@ def plot_aligned_dataStream(dataStream, config, save=False, save_path=None):
         # Save if save is True
         if save:
             if save_path is not None:
-                plt.savefig(save_path + f'/{predictor}_aligned.png')
+                if reconstructed:
+                    plt.savefig(save_path + f'/{predictor}_reconstructed.png')
+                else:
+                    plt.savefig(save_path + f'/{predictor}_aligned.png')
             else:
                 raise ValueError("If save is True, save_path must be provided.")
         else:
