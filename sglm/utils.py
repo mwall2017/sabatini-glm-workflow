@@ -15,8 +15,8 @@ def combine_csvs(project_dir, output_file):
     output_path = os.path.join(dataDir, output_file)
 
     if os.path.exists(output_path):
-        print(f"Output file already exists! File will be overwritten.")
-
+        print(f"Output file already exists! Please remove or rename the existing file: {output_path}")
+        
     else:
         # Open the output file for writing
         with open(output_path, mode='w', newline='') as combined_csv:
@@ -35,8 +35,9 @@ def combine_csvs(project_dir, output_file):
                     next(reader)  # Skip the header
                     for row in reader:
                         writer.writerow(row)
+        print(f"Combined {len(csv_files)} CSV files into {output_file}")
 
-    return output_path, print("Finished combining CSVs!")
+    return output_path
 
 def read_data(input_file, index_col = None):
     """Read in a csv file and return a pandas dataframe.
