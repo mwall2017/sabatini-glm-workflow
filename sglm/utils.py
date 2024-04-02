@@ -15,8 +15,8 @@ def combine_csvs(project_dir, output_file):
     output_path = os.path.join(dataDir, output_file)
 
     if os.path.exists(output_path):
-        print(f"Output file already exists! File will be overwritten.")
-
+        print(f"Output file already exists! Please remove or rename the existing file: {output_path}")
+        
     else:
         # Open the output file for writing
         with open(output_path, mode='w', newline='') as combined_csv:
@@ -35,8 +35,9 @@ def combine_csvs(project_dir, output_file):
                     next(reader)  # Skip the header
                     for row in reader:
                         writer.writerow(row)
+        print(f"Combined {len(csv_files)} CSV files into {output_file}")
 
-    return output_path, print("Finished combining CSVs!")
+    return output_path
 
 def read_data(input_file, index_col = None):
     """Read in a csv file and return a pandas dataframe.
@@ -189,13 +190,13 @@ def plot_betas(config, beta, df_predictors_shift, shifted_params, save=False, sa
         ax.set_title(key)
         ax.set_xlabel('Timestamps')
         ax.set_ylabel('Beta Coefficients')
-        plt.ylim(-1,1.25)
+
         # Add vertical line at zero_index
         for idx in zero_index:
             ax.axvline(x=idx, color='black', linestyle='--')
 
         if save:
-            plt.savefig(os.path.join(save_path, f'{key}_betas.eps'))
+            plt.savefig(os.path.join(save_path, f'{key}_betas.png'))
         else:
             pass
         plt.show()
@@ -282,7 +283,7 @@ def align_reconstructed_dataStream (config, data, data_shifted, shifted_params, 
     return extracted_signal
 
 
-def plot_aligned_dataStream(dataStream, config, save=False, save_path=None):
+def plot_aligned_dataStream(dataStream, config, save=False, save_path=None, reconstructed=False):
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -310,18 +311,24 @@ def plot_aligned_dataStream(dataStream, config, save=False, save_path=None):
         plt.xlabel('Timestamps')
         plt.ylabel('Z-score')
         plt.legend()
-        plt.ylim(-1,1.5)
+        
+        # Save if save is True
         if save:
-            plt.savefig(os.path.join(save_path, f'{predictor}_actual.eps'))
+            if save_path is not None:
+                if reconstructed:
+                    plt.savefig(save_path + f'/{predictor}_reconstructed.png')
+                else:
+                    plt.savefig(save_path + f'/{predictor}_aligned.png')
+            else:
+                raise ValueError("If save is True, save_path must be provided.")
         else:
             pass
         plt.show()
 
-def plot_actual_v_reconstructed(config, dataStream, recon_dataStream,save=False, save_path=None):
+def plot_actual_v_reconstructed(config, dataStream, recon_dataStream, save=False, save_path=None):
     import matplotlib.pyplot as plt
     import numpy as np
 
-    response = config['glm_params']['response']
     for predictor in config['glm_params']['predictors']:
         max_length = max(len(waveform) for waveform in dataStream[predictor])
 
@@ -347,20 +354,23 @@ def plot_actual_v_reconstructed(config, dataStream, recon_dataStream,save=False,
 
         #Plot the averaged waveform with SEM
         plt.figure()
-        plt.plot(averaged_waveform, linewidth=1, label='Actual')
+        plt.plot(averaged_waveform, label='Actual')
         plt.fill_between(range(len(averaged_waveform)), averaged_waveform - sem, averaged_waveform + sem, alpha=0.3)
-        plt.plot(averaged_recon_waveform, linewidth=1, label='Recon')
+        plt.plot(averaged_recon_waveform, label='Recon')
         plt.fill_between(range(len(averaged_recon_waveform)), averaged_recon_waveform - sem_recon, averaged_recon_waveform + sem_recon, alpha=0.3)
 
         plt.title('Actual vs Reconstructed response with SEM - ' + predictor)
         plt.xlabel('Timestamps')
         plt.ylabel('Z-score')
         plt.legend()
-        plt.ylim(-1,1.5)
+
+        # Save if save is True
         if save:
-            plt.savefig(os.path.join(save_path, f'{predictor}_both.eps'))
+            if save_path is not None:
+                plt.savefig(save_path + f'/{predictor}_actualVrecon.png')
+            else:
+                raise ValueError("If save is True, save_path must be provided.")
         else:
             pass
-        
         plt.show()
 
