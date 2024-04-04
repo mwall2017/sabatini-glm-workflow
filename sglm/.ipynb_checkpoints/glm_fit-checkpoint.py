@@ -424,7 +424,7 @@ def calc_mse(y_pred, y):
         mean squared error of the model
     """
 
-    residuals, _ = self.calc_residuals(y_pred, y)
+    residuals, _ = calc_residuals(y_pred, y)
     mse = np.mean(residuals**2)
 
     return mse
@@ -434,22 +434,60 @@ def leave_one_out_cross_val(config, X_train, X_test, y_train, y_test):
     Will run selected model by leaving one predictor out at a time.
     Will return the model with the best score
     """
+    import scipy
     predictors = config['glm_params']['predictors']
-    best_score = 0
-    best_model = None
     model_list = []
 
-    for predictor in predictors:
-        predictors_temp = predictors.copy()
-        predictors_temp.remove(predictor)
-        X_train_temp = X_train[predictors_temp]
-        X_test_temp = X_test[predictors_temp]
-        model, y_pred, score, beta, intercept = fit_glm(config, X_train_temp, X_test_temp, y_train, y_test)
-        print(f'Predictor left out: {predictor}, Score: {score}, adding to model list...')
-        model_list.append({'predictors': predictors_temp,
-                            'model': model, 'score': score, 
-                            'beta': beta, 'intercept': intercept, 
-                            'predictor_left_out': predictor})
+    if type(X_train) == pd.DataFrame:
+        for predictor in predictors:
+            predictors_temp = predictors.copy()
+            predictors_temp.remove(predictor)
+            X_train_temp = X_train[predictors_temp]
+            X_test_temp = X_test[predictors_temp]
+            model, y_pred, score, beta, intercept = fit_glm(config, X_train_temp, X_test_temp, y_train, y_test)
+            print(f'Predictor left out: {predictor}, Score: {score}, adding to model list...')
+            model_list.append({'predictors': predictors_temp,
+                                'model': model, 'score': score, 
+                                'beta': beta, 'intercept': intercept, 
+                                'predictor_left_out': predictor})
+            
+    elif type(X_train) == scipy.sparse._csr.csr_array:
+        predictors_index = {}
+        for i, j in enumerate(predictors):
+            predictors_index[j] = i
+
+        for predictor in predictors:
+            predictors_temp = predictors.copy()
+            predictors_temp.remove(predictor)
+            predictors_temp_index = [predictors_index[p] for p in predictors_temp]
+            #create mask for sparse array indexing
+            mask = np.zeros(X_train.shape[1], dtype=bool)
+            mask[predictors_temp_index] = True
+
+            X_train_temp = X_train[:, mask]
+            X_test_temp = X_test[:, mask]
+            model, y_pred, score, beta, intercept = fit_glm(config, X_train_temp, X_test_temp, y_train, y_test)
+            print(f'Predictor left out: {predictor}, Score: {score}, adding to model list...')
+            model_list.append({'predictors': predictors_temp,
+                                'model': model, 'score': score, 
+                                'beta': beta, 'intercept': intercept, 
+                                'predictor_left_out': predictor})
+            
+    #plot scores for each model
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    # Create the bar plot
+    scores = [model['score'] for model in model_list]
+    predictors = [model['predictor_left_out'] for model in model_list]
+    fig, ax = plt.subplots(figsize=(10, 6))  # Adjusted figsize for better visualization
+    colors = sns.color_palette('colorblind')
+    ax.bar(predictors, scores, color=colors[0])  # Using predictors and scores for bar plot
+    ax.set_xlabel('Predictor Left Out')
+    ax.set_ylabel('Score')
+    ax.set_title('Leave One Out Cross Validation')
+    ax.grid(True)
+    plt.xticks(rotation=45)
+    plt.show()
 
     return model_list
 
