@@ -196,7 +196,7 @@ def plot_betas(config, beta, df_predictors_shift, shifted_params, save=False, sa
             ax.axvline(x=idx, color='black', linestyle='--')
 
         if save:
-            plt.savefig(os.path.join(save_path, f'{key}_betas.png'))
+            plt.savefig(os.path.join(save_path, f'{key}_betas.eps'))
         else:
             pass
         plt.show()
@@ -316,9 +316,9 @@ def plot_aligned_dataStream(dataStream, config, save=False, save_path=None, reco
         if save:
             if save_path is not None:
                 if reconstructed:
-                    plt.savefig(save_path + f'/{predictor}_reconstructed.png')
+                    plt.savefig(save_path + f'/{predictor}_reconstructed.eps')
                 else:
-                    plt.savefig(save_path + f'/{predictor}_aligned.png')
+                    plt.savefig(save_path + f'/{predictor}_aligned.eps')
             else:
                 raise ValueError("If save is True, save_path must be provided.")
         else:
@@ -367,7 +367,7 @@ def plot_actual_v_reconstructed(config, dataStream, recon_dataStream, save=False
         # Save if save is True
         if save:
             if save_path is not None:
-                plt.savefig(save_path + f'/{predictor}_actualVrecon.png')
+                plt.savefig(save_path + f'/{predictor}_actualVrecon.eps')
             else:
                 raise ValueError("If save is True, save_path must be provided.")
         else:
